@@ -4,8 +4,7 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
 from starkware.cairo.common.uint256 import Uint256
 
-
-from contracts.token.ERC721.ERC721_base import (
+from token.ERC721.ERC721_base import (
     ERC721_name,
     ERC721_symbol,
     ERC721_balanceOf,
@@ -21,6 +20,14 @@ from contracts.token.ERC721.ERC721_base import (
     ERC721_safeTransferFrom
 )
 
+
+#
+# Storage
+#
+
+@storage_var
+func a_name() -> (name: felt):
+end
 
 #
 # Constructor
@@ -42,6 +49,17 @@ end
 #
 # Getters
 #
+
+
+@view
+func read_a_name{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }() -> (name: felt):
+    let (name) = a_name.read()
+    return (name)
+end
 
 
 @view
@@ -109,6 +127,16 @@ end
 #
 
 @external
+func set_a_name{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    }(name : felt):
+    a_name.write(name)
+    return ()
+end
+
+@external
 func approve{
         pedersen_ptr: HashBuiltin*,
         syscall_ptr: felt*,
@@ -154,6 +182,8 @@ func safeTransferFrom{
     return ()
 end
 
+
+
 # @external
 # func mint{
 #         pedersen_ptr: HashBuiltin*,
@@ -175,4 +205,3 @@ end
 #     ERC721_burn(token_id)
 #     return ()
 # end
-
