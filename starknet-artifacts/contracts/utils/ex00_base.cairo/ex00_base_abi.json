@@ -1,0 +1,79 @@
+[
+    {
+        "inputs": [],
+        "name": "tderc20_address",
+        "outputs": [
+            {
+                "name": "_tderc20_address",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "players_registry",
+        "outputs": [
+            {
+                "name": "_players_registry",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "account",
+                "type": "felt"
+            },
+            {
+                "name": "exercise_id",
+                "type": "felt"
+            }
+        ],
+        "name": "has_validated_exercise",
+        "outputs": [
+            {
+                "name": "has_validated_exercice",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "account",
+                "type": "felt"
+            },
+            {
+                "name": "permission",
+                "type": "felt"
+            }
+        ],
+        "name": "set_teacher",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "account",
+                "type": "felt"
+            }
+        ],
+        "name": "isTeacher",
+        "outputs": [
+            {
+                "name": "permission",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

@@ -12,7 +12,6 @@ from contracts.token.ERC20.ERC20_base import (
     ERC20_balanceOf,
     ERC20_allowance,
     ERC20_mint,
-
     ERC20_initializer,
     ERC20_approve,
     ERC20_increaseAllowance,
