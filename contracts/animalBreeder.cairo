@@ -3,6 +3,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
 from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.alloc import alloc
 
 
 #from starknet.cairo.math import addNum
@@ -42,9 +43,6 @@ struct MyAnimal:
 end
 
 
-@storage_var
-func a_name() -> (name: felt):
-end
 
 @storage_var
 func stored_rank() -> (rank: felt):
@@ -71,7 +69,15 @@ func token_id_increment() -> (num: felt):
 end
 
 @storage_var
+func index() -> (num: felt):
+end
+
+@storage_var
 func my_animal(tokenid: Uint256) -> (animal: MyAnimal):
+end
+
+@storage_var
+func my_animal_id(account: felt, index: felt) -> (tokenid: Uint256):
 end
 
 @storage_var
@@ -94,14 +100,15 @@ func constructor{
     let to = 3160224547644632651535279661899767678482086458911879210087695553296143624415 #1510851416778934944204297693229363058079533847382583980692826508708240175931
     let token_id: Uint256 = Uint256(1,0)
     ERC721_mint(to, token_id)
-    saveTokenIdCount(42)
-    saveTokenIdIncrement(1)
+    _saveTokenIdCount(42)
+    _saveTokenIdIncrement(1)
     return ()
 end
 
 #
 # Getters
 #
+
 
 
 @view
@@ -112,7 +119,7 @@ func get_animal_characteristics{
     } (token_id: Uint256) -> (sex: felt, legs: felt, wings: felt) :
     alloc_locals
 
-    let (animal) = read_animal(token_id)
+    let (animal) = readAnimal(token_id)
     
     # Retrieve expected characteristics
     let sex = animal.sex_number
@@ -123,7 +130,7 @@ func get_animal_characteristics{
 end
 
 @view
-func read_animal{
+func readAnimal{
         syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -133,15 +140,25 @@ func read_animal{
 end
 
 @view
-func read_aa_name{
+func readIndex{
         syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
-    }() -> (name: felt):
-    let (name) = a_name.read()
-    return (name)
+    }() -> (num: felt):
+    let (num) = index.read()
+    return (num)
 end
 
+@view
+func readAnimalId{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(account: felt, index: felt) -> (tokenid: Uint256):
+    let (tokenid) = my_animal_id.read(account, index)
+    #my_animal_id.write(0, index_num, token_id)
+    return (tokenid)
+end
 
 @view
 func readTokenIDCount{
@@ -153,55 +170,6 @@ func readTokenIDCount{
     return (num)
 end
 
-@view
-func readTokenIDIncrement{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (num: felt):
-    let (num) = token_id_increment.read()
-    return (num)
-end
-
-@view
-func readAssignedRank{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (rank: felt):
-    let (rank) = stored_rank.read()
-    return (rank)
-end
-
-@view
-func readAssignedLegsNumber{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (legs: felt):
-    let (legs) = stored_legs_number.read()
-    return (legs)
-end
-
-@view
-func readAssignedSexNumber{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (sex: felt):
-    let (sex) = stored_sex_number.read()
-    return (sex)
-end
-
-@view
-func readAssignedWingsNumber{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (wings: felt):
-    let (wings) = stored_wings_number.read()
-    return (wings)
-end
 
 @view
 func name{
@@ -263,20 +231,63 @@ func isApprovedForAll{
     return (is_approved)
 end
 
-#
-# Externals
-#
-
-@external
-func set_aa_name{
+@view
+func token_of_owner_by_index{
         pedersen_ptr: HashBuiltin*,
         syscall_ptr: felt*,
         range_check_ptr
-    }(name : felt):
-    a_name.write(name)
+    }(account:felt, index:felt) -> (token_id: Uint256):
+    alloc_locals
+    let(local token_id) = my_animal_id.read(account, index) 
+    return(token_id)  
+end
+
+#
+# Internals
+#
+
+func _addNum{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    }(num_one: felt, num_two: felt) -> (idNum: felt):
+    return(num_one + num_two)     
+end
+
+
+func _saveTokenIdCount{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    }(num : felt):
+    token_id_count.write(num)
     return ()
 end
 
+
+func _saveTokenIdValue{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    }(tokenIDVal : Uint256):
+    token_id_value.write(tokenIDVal)
+    return ()
+end
+
+
+func _saveTokenIdIncrement{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    }(num : felt):
+    token_id_increment.write(num)
+    return ()
+end
+
+
+#
+# Externals
+#
 
 @external
 func calcNewTokenIdNum{
@@ -287,90 +298,11 @@ func calcNewTokenIdNum{
     alloc_locals
     let (local var_one) = token_id_count.read()
     let (local var_two) = token_id_increment.read()
-    let (local idNumTmp) = addNum(var_one, var_two)
-    saveTokenIdCount(idNumTmp)
+    let (local idNumTmp) = _addNum(var_one, var_two)
+    _saveTokenIdCount(idNumTmp)
     let token_id: Uint256 = Uint256(idNumTmp,0)
-    saveTokenIdValue(token_id)
+    _saveTokenIdValue(token_id)
     return()    
-end
-
-@external
-func addNum{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(num_one: felt, num_two: felt) -> (idNum: felt):
-    return(num_one + num_two)     
-end
-
-@external
-func saveTokenIdCount{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(num : felt):
-    token_id_count.write(num)
-    return ()
-end
-
-@external
-func saveTokenIdValue{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(tokenIDVal : Uint256):
-    token_id_value.write(tokenIDVal)
-    return ()
-end
-
-@external
-func saveTokenIdIncrement{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(num : felt):
-    token_id_increment.write(num)
-    return ()
-end
-
-@external
-func setAssignedRank{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(rank : felt):
-    stored_rank.write(rank)
-    return ()
-end
-
-@external
-func setAssignedLegsNumber{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(legs : felt):
-    stored_legs_number.write(legs)
-    return ()
-end
-
-@external
-func setAssignedSexNumber{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(sex : felt):
-    stored_sex_number.write(sex)
-    return ()
-end
-
-@external
-func setAssignedWingsNumber{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(wings : felt):
-    stored_wings_number.write(wings)
-    return ()
 end
 
 
@@ -381,6 +313,16 @@ func approve{
         range_check_ptr
     }(to: felt, token_id: Uint256):
     ERC721_approve(to, token_id)
+    return ()
+end
+
+@external
+func resetIndex{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    }():
+    index.write(0)
     return ()
 end
 
@@ -421,19 +363,6 @@ func safeTransferFrom{
 end
 
 @external
-func createNewAnimal{
-        pedersen_ptr: HashBuiltin*,
-        syscall_ptr: felt*,
-        range_check_ptr
-    }(token_id: Uint256, sex: felt, legs: felt, wings: felt) ->  (new_animal: MyAnimal):
-    alloc_locals
-    my_animal.write(token_id, MyAnimal(sex_number=sex, wings_number=wings, legs_number=legs))
-    let (local new_animal) = my_animal.read(token_id)
-    return (new_animal)
-end
-
-
-@external
 func mintToEvaluator{
         pedersen_ptr: HashBuiltin*,
         syscall_ptr: felt*,
@@ -448,6 +377,36 @@ func mintToEvaluator{
 end
 
 @external
+func mintTokenIdTo{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    }(to: felt, token_id: Uint256):
+
+    ERC721_mint(to, token_id)
+    return ()
+end
+
+@external
+func declareAnimalTest{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    } (sex: felt, legs: felt, wings: felt):
+    alloc_locals
+    calcNewTokenIdNum()
+    let(local token_id) = token_id_value.read()
+    let to = 3160224547644632651535279661899767678482086458911879210087695553296143624415
+    my_animal.write(token_id, MyAnimal(sex_number=sex, wings_number=wings, legs_number=legs))
+    let(local index_num) = index.read()
+    #my_animal_id(account: felt, index: felt) -> (tokenid: Uint256):
+    my_animal_id.write(to, index_num, token_id)
+    index.write(index_num + 1)
+    return()    
+end
+
+
+@external
 func declare_animal{
         pedersen_ptr: HashBuiltin*,
         syscall_ptr: felt*,
@@ -458,10 +417,23 @@ func declare_animal{
     let(local token_id) = token_id_value.read()
     let to = 3160224547644632651535279661899767678482086458911879210087695553296143624415
     my_animal.write(token_id, MyAnimal(sex_number=sex, wings_number=wings, legs_number=legs))
+    let(local index_num) = index.read()
+    my_animal_id.write(to, index_num, token_id)
     ERC721_mint(to, token_id)
+    index.write(index_num + 1)
     return(token_id)    
 end
 
+@external
+func declare_dead_animal{
+        pedersen_ptr: HashBuiltin*,
+        syscall_ptr: felt*,
+        range_check_ptr
+    }(token_id: Uint256):
+    my_animal.write(token_id, MyAnimal(sex_number=0, wings_number=0, legs_number=0))
+    ERC721_burn(token_id)
+    return()
+end
 
 
 
